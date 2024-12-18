@@ -1,0 +1,65 @@
+version: '3.9'
+name: 'Computer Architecture and Operating System Final Project'
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/html:/usr/share/nginx/html  
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  
+    networks:
+      - mynetwork
+    depends_on:
+      - mysql
+    restart: always
+
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint/initdb.d  # Pastikan inisialisasi SQL di-load
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uuser -ppasword || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  phpmyadmin: 
+    image: phpmyadmin/phpmyadmin:latest
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: user
+      PMA_PASSWORD: password
+      PMA_PORT: 3306
+    ports: 
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  nginx-config:
+    driver: local
+    external: false
+
+configs: 
+  nginx-config: 
+    file: ./nginx/nginx.conf:/etc/nginx/nginx.conf
